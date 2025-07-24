@@ -1,0 +1,474 @@
+# Claude Coding Rules
+
+## Overview
+This document contains coding standards and best practices that must be followed for all code development. These rules prioritize maintainability, simplicity, and modern Python development practices.
+
+## Core Principles
+- Write code with minimal complexity that can be maintained by entry-level developers
+- Avoid clever or overly complex coding patterns
+- Prioritize readability and maintainability over complex performance optimizations
+
+## Technology Stack
+
+### Package Management
+- Always use `uv` and `pyproject.toml` for package management
+- Never use `pip` directly
+
+### Modern Python Libraries
+- **Data Processing**: Use `polars` instead of `pandas`
+- **Web APIs**: Use `fastapi` instead of `flask`
+- **Code Formatting/Linting**: Use `ruff` instead of `black`
+- **Type Checking**: Use `mypy` - type checks have become actually useful and should be part of CI/CD
+- **Performance**: Leverage modern CPython improvements - CPython is now much faster
+
+## Code Style Guidelines
+
+### Function Structure
+- All internal/private functions must start with an underscore (`_`)
+- Private functions should be placed at the top of the file, followed by public functions
+- Functions should be modular, containing no more than 30-50 lines
+- Use two blank lines between function definitions
+- One function parameter per line for better readability
+
+### Type Annotations
+- Use Pydantic style annotations for all function parameters
+- Example:
+  ```python
+  def process_data(
+      input_file: str,
+      output_format: str,
+      validate: bool = True
+  ) -> dict:
+      pass
+  ```
+
+### Main Function Pattern
+- The main function should act as a control flow orchestrator
+- Parse command line arguments and delegate to other functions
+- Avoid implementing business logic directly in main()
+
+### Imports
+- Write imports as multi-line imports for better readability
+- Example:
+  ```python
+  from .services.output_formatter import (
+      _display_evaluation_results,
+      _print_results_summary,
+      _check_mcp_generation_criteria
+  )
+  ```
+
+### Constants
+- Don't hard code constants within functions
+- For trivial constants, declare them at the top of the file:
+  ```python
+  STARTUP_DELAY: int = 10
+  MAX_RETRIES: int = 3
+  ```
+- For many constants, create a separate `constants.py` file with a class structure
+
+### Logging Configuration
+- Always use the following logging configuration:
+  ```python
+  import logging
+  
+  # Configure logging with basicConfig
+  logging.basicConfig(
+      level=logging.INFO,  # Set the log level to INFO
+      # Define log message format
+      format="%(asctime)s,p%(process)s,{%(filename)s:%(lineno)d},%(levelname)s,%(message)s",
+  )
+  ```
+
+### Performance Optimization
+- Use `@lru_cache` decorator where appropriate for expensive computations
+
+### Code Validation
+- Always run `uv run python -m py_compile <filename>` after making changes
+
+## Error Handling and Exceptions
+
+### Exception Handling Principles
+- Use specific exception types, avoid bare `except:` clauses
+- Always log exceptions with proper context
+- Fail fast and fail clearly - don't suppress errors silently
+- Use custom exceptions for domain-specific errors
+
+### Exception Pattern
+```python
+import logging
+
+logger = logging.getLogger(__name__)
+
+class DomainSpecificError(Exception):
+    """Base exception for our application"""
+    pass
+
+def process_data(data: dict) -> dict:
+    try:
+        # Process data
+        result = _validate_and_transform(data)
+        return result
+    except ValidationError as e:
+        logger.error(f"Validation failed for data: {e}")
+        raise DomainSpecificError(f"Invalid input data: {e}") from e
+    except Exception as e:
+        logger.exception("Unexpected error in process_data")
+        raise
+```
+
+### Error Messages
+- Write clear, actionable error messages
+- Include context about what was being attempted
+- Suggest possible solutions when appropriate
+
+## Testing Standards
+
+### Testing Framework
+- Use `pytest` as the primary testing framework
+- Maintain minimum 80% code coverage
+- Use `pytest-cov` for coverage reporting
+
+### Test Structure
+```python
+import pytest
+from unittest.mock import Mock, patch
+
+class TestFeatureName:
+    """Tests for feature_name module"""
+    
+    def test_happy_path(self):
+        """Test normal operation with valid inputs"""
+        # Arrange
+        input_data = {"key": "value"}
+        
+        # Act
+        result = function_under_test(input_data)
+        
+        # Assert
+        assert result["status"] == "success"
+    
+    def test_edge_case(self):
+        """Test boundary conditions"""
+        pass
+    
+    def test_error_handling(self):
+        """Test error scenarios"""
+        with pytest.raises(ValueError, match="Invalid input"):
+            function_under_test(None)
+```
+
+### Testing Best Practices
+- Follow AAA pattern: Arrange, Act, Assert
+- One assertion per test when possible
+- Use descriptive test names that explain what is being tested
+- Mock external dependencies
+- Use fixtures for common test data
+- Test both happy paths and error cases
+
+## Async/Await Best Practices
+
+### Async Code Structure
+```python
+import asyncio
+from typing import List
+
+async def fetch_data(url: str) -> dict:
+    """Fetch data from URL asynchronously"""
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as response:
+            return await response.json()
+
+async def process_urls(urls: List[str]) -> List[dict]:
+    """Process multiple URLs concurrently"""
+    tasks = [fetch_data(url) for url in urls]
+    return await asyncio.gather(*tasks, return_exceptions=True)
+```
+
+### Async Guidelines
+- Use `async with` for async context managers
+- Use `asyncio.gather()` for concurrent operations
+- Handle exceptions in async code properly
+- Don't mix blocking and async code
+- Use `asyncio.run()` to run async functions from sync code
+
+## Documentation Standards
+
+### Docstring Format
+Use Google-style docstrings:
+```python
+def calculate_metrics(
+    data: List[float],
+    threshold: float = 0.5
+) -> Dict[str, float]:
+    """Calculate statistical metrics for the given data.
+    
+    Args:
+        data: List of numerical values to analyze
+        threshold: Minimum value to include in calculations
+        
+    Returns:
+        Dictionary containing calculated metrics:
+        - mean: Average value
+        - std: Standard deviation
+        - count: Number of values above threshold
+        
+    Raises:
+        ValueError: If data is empty or contains non-numeric values
+        
+    Example:
+        >>> metrics = calculate_metrics([1.0, 2.0, 3.0])
+        >>> print(metrics['mean'])
+        2.0
+    """
+    pass
+```
+
+### Documentation Requirements
+- All public functions must have docstrings
+- Include type hints in function signatures
+- Document exceptions that can be raised
+- Provide usage examples for complex functions
+- Keep docstrings up-to-date with code changes
+
+## Security Guidelines
+
+### Input Validation
+- Always validate and sanitize user inputs
+- Use Pydantic models for request/response validation
+- Never trust external data
+
+### Secrets Management
+```python
+import os
+from typing import Optional
+
+def get_secret(key: str, default: Optional[str] = None) -> str:
+    """Retrieve secret from environment variable.
+    
+    Never hardcode secrets in source code.
+    """
+    value = os.environ.get(key, default)
+    if value is None:
+        raise ValueError(f"Required secret '{key}' not found in environment")
+    return value
+```
+
+### Security Best Practices
+- Never log sensitive information (passwords, tokens, PII)
+- Use environment variables for configuration
+- Validate all inputs, especially from external sources
+- Use parameterized queries for database operations
+- Keep dependencies updated for security patches
+
+## Dependency Management
+
+### Version Pinning
+In `pyproject.toml`:
+```toml
+[project]
+dependencies = [
+    "fastapi>=0.100.0,<0.200.0",  # Minor version flexibility
+    "pydantic==2.5.0",  # Exact version for critical dependencies
+    "polars>=0.19.0",  # Minimum version only
+]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=7.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.0.0",
+]
+```
+
+### Dependency Guidelines
+- Pin exact versions for critical dependencies
+- Use version ranges for stable libraries
+- Separate dev dependencies from runtime dependencies
+- Regularly update dependencies for security patches
+- Document why specific versions are pinned
+
+## Project Structure
+
+### Standard Layout
+```
+project_name/
+├── src/
+│   └── project_name/
+│       ├── __init__.py
+│       ├── main.py
+│       ├── models/
+│       │   ├── __init__.py
+│       │   └── domain.py
+│       ├── services/
+│       │   ├── __init__.py
+│       │   └── business_logic.py
+│       ├── api/
+│       │   ├── __init__.py
+│       │   └── endpoints.py
+│       └── utils/
+│           ├── __init__.py
+│           └── helpers.py
+├── tests/
+│   ├── __init__.py
+│   ├── conftest.py
+│   ├── unit/
+│   └── integration/
+├── scripts/
+│   └── deploy.sh
+├── docs/
+├── pyproject.toml
+├── README.md
+└── .env.example
+```
+
+### Module Organization
+- Keep related functionality together
+- Use clear, descriptive module names
+- Avoid circular imports
+- Keep modules focused on a single responsibility
+
+## Environment Configuration
+
+### Environment Variables
+```python
+from pydantic import BaseSettings
+from typing import Optional
+
+class Settings(BaseSettings):
+    """Application settings from environment variables."""
+    
+    app_name: str = "MyApp"
+    debug: bool = False
+    database_url: str
+    api_key: str
+    redis_url: Optional[str] = None
+    
+    class Config:
+        env_file = ".env"
+        env_file_encoding = "utf-8"
+        case_sensitive = False
+
+# Global settings instance
+settings = Settings()
+```
+
+### Configuration Best Practices
+- Use Pydantic Settings for type-safe configuration
+- Provide `.env.example` with all required variables
+- Never commit `.env` files to version control
+- Document all environment variables
+- Use sensible defaults where appropriate
+
+## Data Validation with Pydantic
+
+### Model Definition
+```python
+from pydantic import BaseModel, Field, validator
+from typing import Optional
+from datetime import datetime
+
+class UserRequest(BaseModel):
+    """User creation request model."""
+    
+    username: str = Field(..., min_length=3, max_length=50)
+    email: str = Field(..., regex=r'^[\w\.-]+@[\w\.-]+\.\w+$')
+    age: Optional[int] = Field(None, ge=0, le=150)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    
+    @validator('username')
+    def username_alphanumeric(cls, v: str) -> str:
+        if not v.replace('_', '').isalnum():
+            raise ValueError('Username must be alphanumeric')
+        return v.lower()
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "username": "john_doe",
+                "email": "john@example.com",
+                "age": 25
+            }
+        }
+```
+
+### Validation Guidelines
+- Use Pydantic for all API request/response models
+- Define clear validation rules with Field()
+- Use custom validators for complex logic
+- Provide examples in model configuration
+- Return validation errors with clear messages
+
+## Platform Naming
+- Always refer to the service as "Amazon Bedrock" (never "AWS Bedrock")
+
+## GitHub Commit Guidelines
+- Never include auto-generated messages like "🤖 Generated with [Claude Code]"
+- Never include "Co-Authored-By: Claude <noreply@anthropic.com>"
+- Keep commit messages clean and professional
+
+## Docker Build and Deployment
+
+When building and pushing Docker containers, create a shell script following this pattern:
+
+```bash
+#!/bin/bash
+
+# Exit on error
+set -e
+
+# Get the directory where this script is located
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PARENT_DIR="$(dirname "$SCRIPT_DIR")"
+
+# Configuration
+AWS_REGION="${AWS_REGION:-us-east-1}"
+ECR_REPO_NAME="your_app_name"
+AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+ECR_REPO_URI="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO_NAME"
+
+# Login to Amazon ECR
+echo "🔐 Logging in to Amazon ECR..."
+aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
+
+# Create repository if it doesn't exist
+echo "📦 Creating ECR repository if it doesn't exist..."
+aws ecr describe-repositories --repository-names "$ECR_REPO_NAME" --region "$AWS_REGION" || \
+    aws ecr create-repository --repository-name "$ECR_REPO_NAME" --region "$AWS_REGION"
+
+# Build the Docker image
+echo "🏗️ Building Docker image..."
+docker build -f "$PARENT_DIR/Dockerfile" -t "$ECR_REPO_NAME" "$PARENT_DIR"
+
+# Tag the image
+echo "🏷️ Tagging image..."
+docker tag "$ECR_REPO_NAME":latest "$ECR_REPO_URI":latest
+
+# Push the image to ECR
+echo "⬆️ Pushing image to ECR..."
+docker push "$ECR_REPO_URI":latest
+
+echo "✅ Successfully built and pushed image to:"
+echo "$ECR_REPO_URI:latest"
+
+# Save the container URI to a file for reference
+echo "$ECR_REPO_URI:latest" > "$SCRIPT_DIR/.container_uri"
+```
+
+### Docker Script Best Practices
+- Always use `set -e` to exit on error
+- Use environment variables for configuration with sensible defaults
+- Login to ECR before pushing
+- Create ECR repository if it doesn't exist
+- Use clear echo statements with emojis to show progress
+- Save container URI to a file for reference by other scripts
+
+### ARM64 Support
+For ARM64 builds, add QEMU setup:
+```bash
+docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+DOCKER_BUILDKIT=0 docker build -f "$PARENT_DIR/Dockerfile" -t "$ECR_REPO_NAME" "$PARENT_DIR"
+```
+
+## Summary
+These guidelines ensure consistent, maintainable, and modern Python code. Always prioritize simplicity and clarity over cleverness.
