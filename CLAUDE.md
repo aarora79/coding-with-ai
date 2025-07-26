@@ -402,10 +402,53 @@ class UserRequest(BaseModel):
 ## Platform Naming
 - Always refer to the service as "Amazon Bedrock" (never "AWS Bedrock")
 
-## GitHub Commit Guidelines
+## GitHub Commit and Pull Request Guidelines
 - Never include auto-generated messages like "🤖 Generated with [Claude Code]"
 - Never include "Co-Authored-By: Claude <noreply@anthropic.com>"
 - Keep commit messages clean and professional
+- When creating pull requests, do not include Claude Code attribution or generation messages
+- Pull request descriptions should be professional and focus on the technical changes
+
+## Documentation Guidelines
+- Never add emojis to README.md files in repositories
+- Keep README files professional and emoji-free
+
+## Project Notes and Planning Guidelines
+
+### Scratchpad Usage
+- Always create and maintain a `.scratchpad.md` file in each project folder for running notes and plans
+- Add `.scratchpad.md` to the project's `.gitignore` file to keep notes local
+- Use this file to document:
+  - Technical analysis and findings
+  - Implementation plans and strategies
+  - Code refactoring ideas
+  - Architecture decisions and considerations
+  - Development progress and next steps
+
+### Plan Documentation Process
+1. **Default Behavior**: When asked to create plans, automatically add them to `.scratchpad.md`
+2. **Separate Documents**: If specifically requested to create a separate markdown file for a plan:
+   - Create the dedicated plan file (e.g., `migration-plan.md`)
+   - Also add a summary or reference to `.scratchpad.md`
+3. **Organization**: Structure `.scratchpad.md` with clear headings and timestamps for easy navigation
+
+### Scratchpad Structure Example
+```markdown
+# Project Scratchpad
+
+## 2024-01-15: Code Analysis
+- Found hardcoded constants in multiple files
+- Plan to centralize in constants.py
+
+## 2024-01-15: Prompt Refactoring Plan
+- Identified 10+ hardcoded prompts
+- Strategy: Move to config/prompts/ folder
+- [Link to detailed plan](prompt-migration-plan.md)
+
+## Next Steps
+- [ ] Implement constants centralization
+- [ ] Create prompt loader utility
+```
 
 ## Docker Build and Deployment
 
