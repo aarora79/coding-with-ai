@@ -513,5 +513,33 @@ docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 DOCKER_BUILDKIT=0 docker build -f "$PARENT_DIR/Dockerfile" -t "$ECR_REPO_NAME" "$PARENT_DIR"
 ```
 
+## GitHub Issue Management
+
+### Label Management Best Practices
+When creating GitHub issues:
+
+1. **Check Available Labels First**: Always get a list of available labels for the repository before creating issues
+   ```bash
+   gh label list
+   ```
+
+2. **Use Only Existing Labels**: Only apply labels that already exist in the repository to avoid errors during issue creation
+
+3. **Suggest New Labels**: If you believe a new label would be beneficial, make a suggestion in the issue description or as a separate comment, but don't attempt to add non-existent labels during issue creation
+
+4. **Label Application**: Apply labels that are available and relevant to the issue type and scope
+
+**Example Workflow**:
+```bash
+# First check available labels
+gh label list
+
+# Create issue with only existing labels
+gh issue create --title "..." --body-file "..." --label "enhancement,bug"
+
+# If new labels are needed, suggest them in issue comments
+gh issue comment 123 --body "Suggest adding 'agentcore' label for AgentCore-related issues"
+```
+
 ## Summary
 These guidelines ensure consistent, maintainable, and modern Python code. Always prioritize simplicity and clarity over cleverness.
