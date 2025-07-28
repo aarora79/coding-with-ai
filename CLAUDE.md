@@ -31,7 +31,8 @@ This document contains coding standards and best practices that must be followed
 - One function parameter per line for better readability
 
 ### Type Annotations
-- Use Pydantic style annotations for all function parameters
+- Use clear type annotations for all function parameters
+- One function parameter per line for better readability
 - Example:
   ```python
   def process_data(
@@ -40,6 +41,29 @@ This document contains coding standards and best practices that must be followed
       validate: bool = True
   ) -> dict:
       pass
+  ```
+
+### Class Definitions with Pydantic
+- Consider using Pydantic BaseModel for all class definitions to leverage validation, serialization, and other powerful features
+- Pydantic provides automatic validation, type coercion, and serialization capabilities
+- Example:
+  ```python
+  from pydantic import BaseModel, Field, validator
+  from typing import Optional
+  
+  class UserConfig(BaseModel):
+      """User configuration settings."""
+      
+      username: str = Field(..., min_length=3, max_length=50)
+      email: str = Field(..., regex=r'^[\w\.-]+@[\w\.-]+\.\w+$')
+      timeout_seconds: int = Field(default=30, ge=1, le=300)
+      debug_enabled: bool = False
+      
+      @validator('username')
+      def username_alphanumeric(cls, v: str) -> str:
+          if not v.replace('_', '').isalnum():
+              raise ValueError('Username must be alphanumeric')
+          return v.lower()
   ```
 
 ### Main Function Pattern
