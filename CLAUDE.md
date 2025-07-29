@@ -104,6 +104,19 @@ This document contains coding standards and best practices that must be followed
   )
   ```
 
+### Logging Best Practices
+- Add sufficient log messages throughout the code to aid in debugging and monitoring
+- Don't shy away from adding debug logs using `logging.debug()` for detailed tracing
+- When printing a dictionary as part of a trace message, always pretty print it:
+  ```python
+  logger.info(f"Processing data:\n{json.dumps(data_dict, indent=2, default=str)}")
+  ```
+- Consider adding a `--debug` flag to the application that sets the logging level to DEBUG:
+  ```python
+  if args.debug:
+      logging.getLogger().setLevel(logging.DEBUG)
+  ```
+
 ### Performance Optimization
 - Use `@lru_cache` decorator where appropriate for expensive computations
 
@@ -284,6 +297,23 @@ def get_secret(key: str, default: Optional[str] = None) -> str:
 - Validate all inputs, especially from external sources
 - Use parameterized queries for database operations
 - Keep dependencies updated for security patches
+
+### Server Binding Security
+- When starting a server, never bind it to `0.0.0.0` unless absolutely necessary
+- Prefer binding to `127.0.0.1` for local-only access
+- If external access is needed, bind to the specific private IP address:
+  ```python
+  # Bad - exposes to all interfaces
+  app.run(host="0.0.0.0", port=8000)
+  
+  # Good - local only
+  app.run(host="127.0.0.1", port=8000)
+  
+  # Good - specific private IP
+  import socket
+  private_ip = socket.gethostbyname(socket.gethostname())
+  app.run(host=private_ip, port=8000)
+  ```
 
 ## Dependency Management
 
