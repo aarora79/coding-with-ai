@@ -120,6 +120,103 @@ This document contains coding standards and best practices that must be followed
 ### Performance Optimization
 - Use `@lru_cache` decorator where appropriate for expensive computations
 
+### Decorators and Functional Patterns
+
+#### Guidelines for Using Decorators and Functional Patterns Appropriately
+
+**Use Decorators When:**
+- They're built-in or widely known (`@property`, `@staticmethod`, `@dataclass`)
+- They have a single, clear purpose (`@login_required`, `@cache`)
+- They don't change function behavior dramatically
+
+Example - Good use of decorators:
+```python
+# Good - clear, single purpose
+@dataclass
+class User:
+    name: str
+    email: str
+
+@lru_cache(maxsize=128)
+def expensive_calculation(n: int) -> int:
+    return sum(i**2 for i in range(n))
+```
+
+**Use Functional Patterns When:**
+- Simple transformations are clearer than loops
+- You need pure functions for testing
+- The functional approach is more readable
+
+Example - Good use of functional patterns:
+```python
+# Good - simple and clear
+numbers = [1, 2, 3, 4, 5]
+squared = [n**2 for n in numbers]
+evens = [n for n in numbers if n % 2 == 0]
+
+# Good - simple map operation
+names = ["alice", "bob", "charlie"]
+capitalized = list(map(str.capitalize, names))
+```
+
+**Avoid When:**
+- You're chaining multiple complex operations
+- The code requires explaining how it works
+- An entry-level developer would struggle to modify it
+- You're using advanced functional programming concepts
+
+Example - Avoid complex patterns:
+```python
+# Bad - too complex, hard to understand
+result = reduce(lambda x, y: x + y, 
+                filter(lambda x: x % 2 == 0,
+                       map(lambda x: x**2, range(10))))
+
+# Good - clear and simple
+total = 0
+for i in range(10):
+    squared = i ** 2
+    if squared % 2 == 0:
+        total += squared
+```
+
+#### Avoid Deep Nesting
+- Limit nesting to 2-3 levels maximum
+- Extract nested logic into well-named functions
+- Use early returns to reduce nesting
+
+Example - Reducing nesting:
+```python
+# Bad - too much nesting
+def process_data(data):
+    if data:
+        if data.get("users"):
+            for user in data["users"]:
+                if user.get("active"):
+                    if user.get("email"):
+                        send_email(user["email"])
+
+# Good - reduced nesting with early returns
+def process_data(data):
+    if not data:
+        return
+    
+    users = data.get("users", [])
+    if not users:
+        return
+    
+    for user in users:
+        _process_active_user(user)
+
+def _process_active_user(user):
+    if not user.get("active"):
+        return
+    
+    email = user.get("email")
+    if email:
+        send_email(email)
+```
+
 ### Code Validation
 - Always run `uv run python -m py_compile <filename>` after making changes
 
