@@ -4,9 +4,9 @@
 This document contains coding standards and best practices that must be followed for all code development. These rules prioritize maintainability, simplicity, and modern Python development practices.
 
 ## Core Principles
-- Write code with minimal complexity that can be maintained by entry-level developers
-- Avoid clever or overly complex coding patterns
-- Prioritize readability and maintainability over complex performance optimizations
+- Write code with minimal complexity for maximum maintainability and clarity
+- Choose simple, readable solutions over clever or complex implementations
+- Prioritize code that any team member can confidently understand, modify, and debug
 
 ## Technology Stack
 
