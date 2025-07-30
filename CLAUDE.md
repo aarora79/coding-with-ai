@@ -17,7 +17,7 @@ This document contains coding standards and best practices that must be followed
 ### Modern Python Libraries
 - **Data Processing**: Use `polars` instead of `pandas`
 - **Web APIs**: Use `fastapi` instead of `flask`
-- **Code Formatting/Linting**: Use `ruff` instead of `black`
+- **Code Formatting/Linting**: Use `ruff` for both linting and formatting
 - **Type Checking**: Use `mypy` - type checks have become actually useful and should be part of CI/CD
 - **Performance**: Leverage modern CPython improvements - CPython is now much faster
 
@@ -41,6 +41,33 @@ This document contains coding standards and best practices that must be followed
       validate: bool = True
   ) -> dict:
       pass
+  ```
+
+### Type Hints for Optional Parameters
+- Always use `Optional[type]` for parameters that can be None
+- Be explicit about optional parameters, especially when they have special meanings:
+  ```python
+  from typing import Optional, List
+  
+  def process_samples(
+      sample_size: Optional[int] = None,  # None means use default
+      language: Optional[str] = None      # None means no filtering
+  ) -> List[dict]:
+      """Process dataset samples.
+      
+      Args:
+          sample_size: Number of samples. None uses default, 0 means all.
+          language: Language filter. None means all languages.
+      """
+      if sample_size == 0:
+          # Special case: process all samples
+          return process_all()
+      elif sample_size is None:
+          # Use default sample size
+          sample_size = DEFAULT_SAMPLE_SIZE
+          
+      # Process with explicit sample size
+      return process_with_size(sample_size)
   ```
 
 ### Class Definitions with Pydantic
@@ -70,6 +97,56 @@ This document contains coding standards and best practices that must be followed
 - The main function should act as a control flow orchestrator
 - Parse command line arguments and delegate to other functions
 - Avoid implementing business logic directly in main()
+
+### Command-Line Interface Design
+When creating CLI applications:
+
+1. **Use argparse with comprehensive help**:
+   ```python
+   parser = argparse.ArgumentParser(
+       description="Clear description of what the tool does",
+       formatter_class=argparse.RawDescriptionHelpFormatter,
+       epilog="""
+   Example usage:
+       # Basic usage
+       uv run python -m module --param value
+       
+       # With environment variable
+       export PARAM=value
+       uv run python -m module
+   """
+   )
+   ```
+
+2. **Support both CLI args and environment variables**:
+   ```python
+   def _get_config_value(cli_value: Optional[str] = None) -> str:
+       if cli_value:
+           return cli_value
+       
+       env_value = os.getenv("CONFIG_VAR")
+       if env_value:
+           return env_value
+       
+       raise ValueError("Value must be provided via --param or CONFIG_VAR env var")
+   ```
+
+3. **Provide sensible defaults**:
+   ```python
+   parser.add_argument(
+       "--sample-size",
+       type=int,
+       help=f"Number of samples (default: {DEFAULT_SIZE}). Use 0 for all",
+   )
+   ```
+
+4. **Use special values for "all" options**:
+   ```python
+   if sample_size == 0 or sample_size is None:
+       # Process entire dataset
+   else:
+       # Process sample
+   ```
 
 ### Imports
 - Write imports as multi-line imports for better readability
@@ -117,8 +194,89 @@ This document contains coding standards and best practices that must be followed
       logging.getLogger().setLevel(logging.DEBUG)
   ```
 
+### Performance Feedback
+Provide users with feedback on long-running operations:
+
+1. **Display elapsed time after completion**:
+   ```python
+   start_time = time.time()
+   # ... perform operation ...
+   elapsed_time = time.time() - start_time
+   minutes = int(elapsed_time // 60)
+   seconds = elapsed_time % 60
+   
+   if minutes > 0:
+       logger.info(f"Completed in {minutes} minutes and {seconds:.1f} seconds")
+   else:
+       logger.info(f"Completed in {seconds:.1f} seconds")
+   ```
+
+2. **Warn about potentially long operations**:
+   ```python
+   if processing_full_dataset:
+       logger.warning("Processing FULL dataset. This may take a long time.")
+   else:
+       logger.info(f"Processing {sample_size} samples.")
+   ```
+
+3. **Show configuration at startup**:
+   ```python
+   logger.info(f"Configuration: {config.model_dump()}")
+   ```
+
 ### Performance Optimization
 - Use `@lru_cache` decorator where appropriate for expensive computations
+
+### External Resource Management
+When working with external data sources (APIs, datasets, databases):
+
+1. **Version/pin external dependencies**:
+   ```python
+   # Specify exact versions or commits for reproducibility
+   API_VERSION = "v2"
+   SCHEMA_VERSION = "2024-01-15"
+   ```
+
+2. **Document external resources in code**:
+   ```python
+   # Constants file with clear documentation
+   DATA_SOURCE: str = "source-name"  # Documentation URL: https://...
+   API_ENDPOINT: str = "https://api.example.com/v1"  # API docs: https://...
+   ```
+
+3. **Handle data filtering and edge cases gracefully**:
+   ```python
+   def load_filtered_data(
+       filters: Dict[str, Any],
+       limit: Optional[int] = None
+   ) -> List[dict]:
+       data = fetch_from_source()
+       
+       # Apply filters with clear feedback
+       for key, value in filters.items():
+           filtered = [item for item in data if item.get(key) == value]
+           logger.info(f"Filter '{key}={value}': {len(data)} -> {len(filtered)} items")
+           data = filtered
+       
+       if not data:
+           raise ValueError(f"No data found matching filters: {filters}")
+       
+       # Handle size limits
+       if limit and len(data) < limit:
+           logger.warning(f"Only {len(data)} items available (requested: {limit})")
+           
+       return data[:limit] if limit else data
+   ```
+
+4. **Provide actionable error messages**:
+   ```python
+   if not data:
+       raise ValueError(
+           f"No data retrieved from {DATA_SOURCE}. "
+           f"Check connection and credentials. "
+           f"Documentation: {DOCS_URL}"
+       )
+   ```
 
 ### Decorators and Functional Patterns
 
@@ -395,6 +553,22 @@ def get_secret(key: str, default: Optional[str] = None) -> str:
 - Use parameterized queries for database operations
 - Keep dependencies updated for security patches
 
+### Security Scanning with Bandit
+- Run Bandit regularly as part of the development workflow
+- Handle false positives with `# nosec` comments and clear justification
+- Common patterns to handle:
+  ```python
+  # When using random for ML reproducibility (not cryptography)
+  # This is not for security/cryptographic purposes - nosec B311
+  random.seed(random_seed)
+  samples = random.sample(dataset, size)  # nosec B311
+  
+  # When loading from trusted sources with version pinning
+  # This is acceptable for evaluation tools using well-known datasets - nosec B615
+  ds = load_dataset(DATASET_NAME, revision="main")  # nosec B615
+  ```
+- Run security scans with: `uv run bandit -r src/`
+
 ### Server Binding Security
 - When starting a server, never bind it to `0.0.0.0` unless absolutely necessary
 - Prefer binding to `127.0.0.1` for local-only access
@@ -412,7 +586,54 @@ def get_secret(key: str, default: Optional[str] = None) -> str:
   app.run(host=private_ip, port=8000)
   ```
 
+## Development Workflow
+
+### Recommended Development Tools
+- **Ruff**: For linting and formatting (replaces multiple tools like isort and many flake8 plugins)
+- **Bandit**: For security vulnerability scanning
+- **MyPy**: For type checking
+- **Pytest**: For testing
+
+### Pre-commit Workflow
+Before committing code, run these checks in order:
+
+```bash
+# 1. Format and lint with auto-fixes
+uv run ruff check --fix . && uv run ruff format .
+
+# 2. Security scanning
+uv run bandit -r src/
+
+# 3. Type checking
+uv run mypy src/
+
+# 4. Run tests
+uv run pytest
+
+# Or run all checks in one command:
+uv run ruff check --fix . && uv run ruff format . && uv run bandit -r src/ && uv run mypy src/ && uv run pytest
+```
+
+### Adding Development Dependencies
+```bash
+# Add development dependencies
+uv add --dev ruff mypy bandit pytest pytest-cov
+```
+
 ## Dependency Management
+
+### Project Configuration
+Always specify Python version in `pyproject.toml` to avoid warnings:
+```toml
+[project]
+name = "project-name"
+version = "0.1.0"
+description = "Project description"
+requires-python = ">=3.11"  # Always specify this!
+dependencies = [
+    # ... dependencies
+]
+```
 
 ### Version Pinning
 In `pyproject.toml`:
@@ -429,6 +650,7 @@ dev-dependencies = [
     "pytest>=7.0.0",
     "ruff>=0.1.0",
     "mypy>=1.0.0",
+    "bandit>=1.7.0",
 ]
 ```
 
@@ -478,6 +700,58 @@ project_name/
 - Use clear, descriptive module names
 - Avoid circular imports
 - Keep modules focused on a single responsibility
+
+### Comprehensive .gitignore
+Ensure your `.gitignore` includes all necessary entries:
+
+```gitignore
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Testing and linting caches
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Security reports
+bandit_report.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+*.csv  # Or specific output files
+.scratchpad.md
+logs/
+output/
+
+# AWS
+.aws/
+```
 
 ## Environment Configuration
 
@@ -563,6 +837,50 @@ class UserRequest(BaseModel):
 ## Documentation Guidelines
 - Never add emojis to README.md files in repositories
 - Keep README files professional and emoji-free
+
+### README Best Practices
+A well-structured README should include:
+
+1. **Prerequisites Section**: List external dependencies and setup requirements
+   ```markdown
+   ## Prerequisites
+   - Python 3.11+
+   - AWS credentials configured
+   - Amazon Bedrock Guardrail with sensitive information filters
+   ```
+
+2. **Links to External Resources**: Provide links to datasets, documentation, and services
+   ```markdown
+   - Evaluate performance on the [dataset-name](https://link-to-dataset)
+   - See [AWS documentation](https://docs.aws.amazon.com/...) for setup
+   ```
+
+3. **Clear Command Examples**: Show all command-line options with examples
+   ```markdown
+   ## Usage
+   # Basic usage
+   uv run python -m module_name --required-param value
+   
+   # With all options
+   uv run python -m module_name --param1 value1 --param2 value2
+   
+   # Using environment variables
+   export CONFIG_VAR=value
+   uv run python -m module_name
+   ```
+
+4. **Development Workflow**: Include a section on development practices
+   ```markdown
+   ## Development Workflow
+   # Run all checks before committing
+   uv run ruff check --fix . && uv run ruff format . && uv run bandit -r src/
+   ```
+
+5. **Performance Warnings**: Alert users about time-intensive operations
+   ```markdown
+   # Evaluate full dataset (warning: this may take a long time)
+   uv run python -m module_name --sample-size 0
+   ```
 
 ## Project Notes and Planning Guidelines
 
