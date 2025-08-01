@@ -745,7 +745,7 @@ Thumbs.db
 
 # Project specific
 *.csv  # Or specific output files
-.scratchpad.md
+.scratchpad/
 logs/
 output/
 
@@ -885,38 +885,54 @@ A well-structured README should include:
 ## Project Notes and Planning Guidelines
 
 ### Scratchpad Usage
-- Always create and maintain a `.scratchpad.md` file in each project folder for running notes and plans
-- Add `.scratchpad.md` to the project's `.gitignore` file to keep notes local
-- Use this file to document:
-  - Technical analysis and findings
-  - Implementation plans and strategies
-  - Code refactoring ideas
-  - Architecture decisions and considerations
-  - Development progress and next steps
+- Always create and maintain a `.scratchpad/` folder in each project root for temporary markdown files, task status, and planning documents
+- Add `.scratchpad/` to the project's `.gitignore` file to keep notes local
+- Use this folder to store:
+  - Technical analysis and findings (`analysis-YYYY-MM-DD.md`)
+  - Implementation plans and strategies (`plan-feature-name.md`)
+  - Code refactoring ideas (`refactor-component-name.md`)
+  - Architecture decisions and considerations (`architecture-decisions.md`)
+  - Development progress and next steps (`progress-notes.md`)
+  - Task status and temporary working documents
 
 ### Plan Documentation Process
-1. **Default Behavior**: When asked to create plans, automatically add them to `.scratchpad.md`
-2. **Separate Documents**: If specifically requested to create a separate markdown file for a plan:
-   - Create the dedicated plan file (e.g., `migration-plan.md`)
-   - Also add a summary or reference to `.scratchpad.md`
-3. **Organization**: Structure `.scratchpad.md` with clear headings and timestamps for easy navigation
+1. **Default Behavior**: When asked to create plans, create individual markdown files in `.scratchpad/` folder
+2. **File Naming**: Use descriptive names with dates when relevant:
+   - `plan-agent-refactoring-2024-07-31.md`
+   - `analysis-memory-system.md`
+   - `task-status-current.md`
+3. **Organization**: Each file should have clear headings, timestamps, and be self-contained
 
-### Scratchpad Structure Example
+### Scratchpad Folder Structure Example
+```
+project_root/
+├── .scratchpad/
+│   ├── plan-agent-refactoring-2024-07-31.md
+│   ├── analysis-hardcoded-names.md
+│   ├── task-status-current.md
+│   ├── architecture-decisions.md
+│   └── progress-notes.md
+├── .gitignore  # Contains .scratchpad/
+└── ... other project files
+```
+
+### Individual File Structure Example
 ```markdown
-# Project Scratchpad
+# Agent Name Refactoring Plan
+*Created: 2024-07-31*
 
-## 2024-01-15: Code Analysis
+## Investigation Summary
 - Found hardcoded constants in multiple files
 - Plan to centralize in constants.py
 
-## 2024-01-15: Prompt Refactoring Plan
-- Identified 10+ hardcoded prompts
-- Strategy: Move to config/prompts/ folder
-- [Link to detailed plan](prompt-migration-plan.md)
+## Implementation Strategy
+- Phase 1: Extend constants
+- Phase 2: Update core infrastructure
+- [Detailed steps follow...]
 
 ## Next Steps
 - [ ] Implement constants centralization
-- [ ] Create prompt loader utility
+- [ ] Create utility methods
 ```
 
 ## Docker Build and Deployment
