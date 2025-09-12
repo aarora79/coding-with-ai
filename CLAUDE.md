@@ -838,6 +838,15 @@ class UserRequest(BaseModel):
 - Never add emojis to README.md files in repositories
 - Keep README files professional and emoji-free
 
+### Emoji Usage Guidelines
+- **Code**: Absolutely no emojis in source code, comments, or docstrings
+- **Documentation**: Avoid emojis in all documentation files (.md, .rst, etc.)
+- **Log Messages**: Use plain text only for log messages - no emojis
+- **Shell Scripts**: Avoid emojis in shell scripts - prefer plain text status messages
+- **Comments**: Use clear, descriptive text instead of emojis in code comments
+
+**Rationale**: Emojis can cause encoding issues, reduce accessibility, appear unprofessional in enterprise environments, and may not render consistently across different systems and terminals.
+
 ### README Best Practices
 A well-structured README should include:
 
@@ -956,27 +965,27 @@ AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 ECR_REPO_URI="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO_NAME"
 
 # Login to Amazon ECR
-echo "🔐 Logging in to Amazon ECR..."
+echo "Logging in to Amazon ECR..."
 aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
 
 # Create repository if it doesn't exist
-echo "📦 Creating ECR repository if it doesn't exist..."
+echo "Creating ECR repository if it doesn't exist..."
 aws ecr describe-repositories --repository-names "$ECR_REPO_NAME" --region "$AWS_REGION" || \
     aws ecr create-repository --repository-name "$ECR_REPO_NAME" --region "$AWS_REGION"
 
 # Build the Docker image
-echo "🏗️ Building Docker image..."
+echo "Building Docker image..."
 docker build -f "$PARENT_DIR/Dockerfile" -t "$ECR_REPO_NAME" "$PARENT_DIR"
 
 # Tag the image
-echo "🏷️ Tagging image..."
+echo "Tagging image..."
 docker tag "$ECR_REPO_NAME":latest "$ECR_REPO_URI":latest
 
 # Push the image to ECR
-echo "⬆️ Pushing image to ECR..."
+echo "Pushing image to ECR..."
 docker push "$ECR_REPO_URI":latest
 
-echo "✅ Successfully built and pushed image to:"
+echo "Successfully built and pushed image to:"
 echo "$ECR_REPO_URI:latest"
 
 # Save the container URI to a file for reference
@@ -988,7 +997,7 @@ echo "$ECR_REPO_URI:latest" > "$SCRIPT_DIR/.container_uri"
 - Use environment variables for configuration with sensible defaults
 - Login to ECR before pushing
 - Create ECR repository if it doesn't exist
-- Use clear echo statements with emojis to show progress
+- Use clear echo statements to show progress (avoid emojis for compatibility)
 - Save container URI to a file for reference by other scripts
 
 ### ARM64 Support
