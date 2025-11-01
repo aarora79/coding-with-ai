@@ -753,6 +753,34 @@ output/
 .aws/
 ```
 
+## Scratchpad for Planning & Design
+
+The `.scratchpad/` folder contains intermediate and temporary documents used during development that are not meant for long-term storage or committed to the repository.
+
+**Contents:**
+- Design discussions and architecture sketches
+- Todo lists and task planning documents
+- GitHub issue creation planning
+- LinkedIn posts and social media drafts
+- Session notes and decision logs
+- Meeting minutes and action items
+- Prototype diagrams and brainstorming documents
+- Any other context-specific content created during active work
+
+**Important:**
+- `.scratchpad/` is in `.gitignore` and will NOT be committed
+- These files are temporary and may be deleted at any time
+- Only relevant within the context of current work sessions
+- Not suitable for documentation or long-term reference
+- Use for active planning, not for finalized documentation
+
+**Naming Convention:**
+- Design files: `design-feature-name.md` or `design-YYYY-MM-DD.md`
+- Planning files: `plan-feature-name.md` or `task-status.md`
+- Drafts: `draft-linkedin-post.md`, `draft-github-issue.md`
+- Notes: `session-notes-YYYY-MM-DD.md`, `meeting-minutes.md`
+- Sub-tasks: `sub-tasks-issue-NUMBER-feature-name.md`
+
 ## Environment Configuration
 
 ### Environment Variables
